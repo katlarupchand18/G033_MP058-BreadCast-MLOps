@@ -1,0 +1,13 @@
+{
+  "v1_mae_last30": 141.53849150834444,
+  "v2_mae_last30": 48.42703676188457,
+  "promotion_threshold": 120.30771778209277,
+  "promoted": true,
+  "v2_version": 2,
+  "v2_run_id": "a4c76330175e4a4796ad030895f4f063",
+  "v2_model_type": "HistGradientBoostingRegressor",
+  "v2_cv_mae": 29.510117103014558,
+  "combined_train_rows": 1210,
+  "later_train_rows": 210,
+  "later_test_rows": 90
+}

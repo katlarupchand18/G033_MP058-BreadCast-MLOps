@@ -38,25 +38,25 @@ data_issues:
     true_levels: null      # how many real categories there are after cleaning
 
 tracking:
-  experiment_name: null
-  best_run_id: null        # the MLflow run id of your v1 model
-  registered_model_name: null
-  champion_version: null
+  experiment_name: "bakery_sales"
+  best_run_id: "fc991b9b80684faa852ac2769c88779e"        # the MLflow run id of your v1 model
+  registered_model_name: "bakery_sales_model"
+  champion_version: 2
 
 monitoring:
   psi:                     # cleaned train.csv vs later.csv, 10 bins
-    price_rs: null
-    temp_c: null
-    footfall_index: null
-    competitor_shops: null
-    shelf_hours: null
-    orders_previous_day: null
-  most_drifted_feature: null
+    price_rs: 0.0240
+    temp_c: 0.0899
+    footfall_index: 0.0132
+    competitor_shops: 0.0083
+    shelf_hours: 3.3859
+    orders_previous_day: 0.0565
+  most_drifted_feature: "shelf_hours"
   mae_by_group:            # v1 on later.csv, per value of outlet
-    'Station Road': null
-    'Mall Road': null
-    'College Gate': null
-  worst_served_group: null
-  mae_v1_on_check: null    # v1 on the last 30% of later.csv (by date)
-  mae_v2_on_check: null    # v2 on the same rows
-  decision: null           # promote or keep
+    'Station Road': 79.2230
+    'Mall Road': 64.2714
+    'College Gate': 217.0036
+  worst_served_group: "College Gate"
+  mae_v1_on_check: 141.5385    # v1 on the last 30% of later.csv (by date)
+  mae_v2_on_check: 48.4270     # v2 on the same rows
+  decision: "promote"          # promote or keep
