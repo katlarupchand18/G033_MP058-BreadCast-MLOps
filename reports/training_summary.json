@@ -1,0 +1,39 @@
+{
+  "best_run_id": "fc991b9b80684faa852ac2769c88779e",
+  "best_model_name": "HistGradientBoostingRegressor",
+  "registered_model_name": "bakery_sales_model",
+  "champion_version": 1,
+  "data_sha256": "d02dae0740aa624fe95ee4e4b751b19734d8869559a956d0b22069ebab304977",
+  "all_results": [
+    {
+      "run_id": "57c538c19b2546f1a592fbeefc667766",
+      "model_name": "DummyRegressor",
+      "metrics": {
+        "cv_mae_mean": 81.38286867678026,
+        "cv_mae_std": 2.400774549476755,
+        "train_mae": 81.81076399999999,
+        "model_name": "DummyRegressor"
+      }
+    },
+    {
+      "run_id": "6c3a52b4c3b144c1ba64f0ff338e9818",
+      "model_name": "RandomForestRegressor",
+      "metrics": {
+        "cv_mae_mean": 30.003603879990784,
+        "cv_mae_std": 2.956466981888903,
+        "train_mae": 12.269361167665664,
+        "model_name": "RandomForestRegressor"
+      }
+    },
+    {
+      "run_id": "fc991b9b80684faa852ac2769c88779e",
+      "model_name": "HistGradientBoostingRegressor",
+      "metrics": {
+        "cv_mae_mean": 23.13025588033279,
+        "cv_mae_std": 2.6191882361921794,
+        "train_mae": 4.555335278742379,
+        "model_name": "HistGradientBoostingRegressor"
+      }
+    }
+  ]
+}
