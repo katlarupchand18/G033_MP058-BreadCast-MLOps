@@ -1,0 +1,164 @@
+# Configuration parameters for SCSE3040 MLOps Mini Project - G033 MP058
+
+# Data paths
+data:
+  raw_dir: "data/raw"
+  train_file: "train.csv"
+  later_file: "later.csv"
+  holdout_file: "holdout_features.csv"
+  cleaned_dir: "data/cleaned"
+
+# Data quality
+data_quality:
+  # Unit mixup correction
+  price_rs_unit_mixup:
+    column: "price_rs"
+    affected_outlet: "College Gate"
+    factor: 100  # wrong value = correct value * factor
+
+  # Target typo correction
+  target_typos:
+    column: "loaves_sold"
+    threshold: 1000  # values above this are suspected typos
+    factor: 10       # typo values are 10x the correct value
+
+  # Duplicate handling
+  duplicates:
+    drop_exact: true
+
+# Preprocessing
+preprocessing:
+  # Features available at prediction time (excluding target)
+  feature_columns:
+    - "price_rs"
+    - "temp_c"
+    - "footfall_index"
+    - "competitor_shops"
+    - "shelf_hours"
+    - "orders_previous_day"
+    - "day_type"
+    - "outlet"
+
+  target_column: "loaves_sold"
+
+  # Categorical columns for encoding
+  categorical_columns:
+    - "day_type"
+    - "outlet"
+
+  # Numeric columns for scaling
+  numeric_columns:
+    - "price_rs"
+    - "temp_c"
+    - "footfall_index"
+    - "competitor_shops"
+    - "shelf_hours"
+    - "orders_previous_day"
+
+  # Date column (not used as feature directly)
+  date_column: "date"
+
+  # ID column
+  id_column: "record_id"
+
+# Model training
+training:
+  random_seed: 42
+  test_size: 0.2
+  cv_folds: 5
+  metric: "mae"
+
+  # Models to try
+  models:
+    - name: "DummyRegressor"
+      params:
+        strategy: "mean"
+    - name: "RandomForestRegressor"
+      params:
+        n_estimators: 200
+        max_depth: 15
+        min_samples_split: 5
+        min_samples_leaf: 2
+        random_state: 42
+        n_jobs: -1
+    - name: "HistGradientBoostingRegressor"
+      params:
+        max_iter: 200
+        max_depth: 10
+        learning_rate: 0.1
+        min_samples_leaf: 20
+        random_state: 42
+
+# MLflow tracking
+mlflow:
+  tracking_uri: "sqlite:///mlflow.db"
+  experiment_name: "bakery_sales_g033_mp058"
+  registered_model_name: "bakery_sales_model"
+  champion_alias: "champion"
+
+# API Service
+api:
+  host: "0.0.0.0"
+  port: 8000
+  health_endpoint: "/health"
+  predict_endpoint: "/predict"
+
+  # Validation rules from client
+  validation:
+    shelf_hours_max: 30
+    orders_previous_day_min: 5
+
+# Docker
+docker:
+  base_image: "python:3.12-slim"
+  image_name: "mp058-api"
+  image_tag: "1.0"
+  port: 8000
+
+# Kubernetes
+kubernetes:
+  deployment_name: "mp058-api"
+  service_name: "mp058-svc"
+  replicas: 4
+  container_port: 8000
+  service_port: 80
+  target_port: 8000
+  image: "mp058-api:1.0"
+
+  # Probe configuration
+  readiness_probe:
+    path: "/health"
+    initial_delay_seconds: 5
+    period_seconds: 10
+    timeout_seconds: 3
+    failure_threshold: 3
+
+  liveness_probe:
+    path: "/health"
+    initial_delay_seconds: 15
+    period_seconds: 20
+    timeout_seconds: 5
+    failure_threshold: 3
+
+# Monitoring & Retraining
+monitoring:
+  psi:
+    bins: 10
+    numeric_features:
+      - "price_rs"
+      - "temp_c"
+      - "footfall_index"
+      - "competitor_shops"
+      - "shelf_hours"
+      - "orders_previous_day"
+
+  retraining:
+    later_split_ratio: 0.7  # first 70% for training, last 30% for evaluation
+    promotion_threshold: 0.85  # v2 MAE <= 0.85 * v1 MAE
+
+# Output paths
+output:
+  model_path: "models/model.joblib"
+  predictions_path: "predictions/holdout_predictions.csv"
+  findings_path: "reports/findings.yaml"
+  mlflow_db: "mlflow.db"

@@ -1,0 +1,52 @@
+# Git
+.git
+.gitignore
+
+# DVC
+data/raw/train.csv
+data/raw/later.csv
+*.dvc
+.dvc/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# MLflow artifacts (mlflow.db is committed separately)
+mlruns/
+mlartifacts/
+
+# Test outputs
+.coverage
+.tox/
+
+# Distribution
+dist/
+build/
+*.egg-info/
+
+# Local config
+*.local.yaml
+*.local.yml
