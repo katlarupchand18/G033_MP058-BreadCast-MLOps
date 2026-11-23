@@ -9,54 +9,54 @@ data_issues:
   # For each of the 7 kinds: present: true or false.
   # If present is false, leave the other values as null.
   leaking_column:
-    present: null
+    present: false
     column: null           # the column that must not be used as a feature
   unit_mixup:
-    present: null
-    column: null           # the column recorded in a different unit
-    group_value: null      # the value of outlet whose rows are affected
-    factor: null           # wrong value = right value x factor
+    present: true
+    column: "price_rs"           # the column recorded in a different unit
+    group_value: "College Gate"      # the value of outlet whose rows are affected
+    factor: 100           # wrong value = right value x factor
   sentinel_value:
-    present: null
+    present: false
     column: null
     value: null            # the special number typed instead of a blank
     count: null            # how many rows have it
   duplicate_rows:
-    present: null
-    count: null            # number of EXTRA copies (rows you would delete)
+    present: true
+    count: 49            # number of EXTRA copies (rows you would delete)
   stuck_sensor:
-    present: null
+    present: false
     column: null
     start_date: null       # first date with the stuck value, YYYY-MM-DD
     end_date: null         # last date with the stuck value, YYYY-MM-DD
   target_typos:
-    present: null
-    count: null            # rows whose target was typed 10 times too big
+    present: true
+    count: 15            # rows whose target was typed 10 times too big
   spelling_variants:
-    present: null
+    present: false
     column: null
     true_levels: null      # how many real categories there are after cleaning
 
 tracking:
-  experiment_name: null
-  best_run_id: null        # the MLflow run id of your v1 model
-  registered_model_name: null
-  champion_version: null
+  experiment_name: "bakery_sales_g033_mp058"
+  best_run_id: "a36acfc6a9e34cf09d31d5be75fec356"        # the MLflow run id of your v1 model
+  registered_model_name: "bakery_sales_model"
+  champion_version: 3
 
 monitoring:
   psi:                     # cleaned train.csv vs later.csv, 10 bins
-    price_rs: null
-    temp_c: null
-    footfall_index: null
-    competitor_shops: null
-    shelf_hours: null
-    orders_previous_day: null
-  most_drifted_feature: null
+    price_rs: 0.020772
+    temp_c: 0.096695
+    footfall_index: 0.016577
+    competitor_shops: 0.009189
+    shelf_hours: 10.775418
+    orders_previous_day: 0.081584
+  most_drifted_feature: "shelf_hours"
   mae_by_group:            # v1 on later.csv, per value of outlet
-    'Station Road': null
-    'Mall Road': null
-    'College Gate': null
-  worst_served_group: null
-  mae_v1_on_check: null    # v1 on the last 30% of later.csv (by date)
-  mae_v2_on_check: null    # v2 on the same rows
-  decision: null           # promote or keep
+    'Station Road': 9.4914
+    'Mall Road': 14.8672
+    'College Gate': 37.2771
+  worst_served_group: "College Gate"
+  mae_v1_on_check: 48.4270    # v1 on the last 30% of later.csv (by date)
+  mae_v2_on_check: 48.4270    # v2 on the same rows
+  decision: "keep"           # promote or keep

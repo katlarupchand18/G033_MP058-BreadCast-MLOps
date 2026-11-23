@@ -123,25 +123,29 @@ This project builds a complete MLOps pipeline for predicting daily bread sales (
 - **Target Typos**: 15 rows with `loaves_sold` 10× too large (extra zero)
 - No leaking columns, sentinel values, stuck sensors, or spelling variants detected
 
-### Stage 2: Cleaning, MLflow, and Testing (IN PROGRESS)
-- Build reproducible cleaning pipeline in `src/bakery_mlops/preprocessing.py`
-- Train baseline models with MLflow tracking (`sqlite:///mlflow.db`)
-- Register best model with `champion` alias
-- Write automated tests (pytest + FastAPI TestClient)
+### Stage 2: Cleaning, MLflow, and Testing (COMPLETED)
+- Built reproducible cleaning pipeline in `src/bakery_mlops/preprocessing.py`
+- Trained baseline models with MLflow tracking (`sqlite:///mlflow.db`)
+- Registered best model (HistGradientBoostingRegressor) with `champion` alias (version 3)
+- Wrote automated tests (32 tests: pytest + FastAPI TestClient) - all passing
 
-### Stage 3: FastAPI, Docker, CI, Kubernetes (PENDING)
-- FastAPI service with `/health` and `/predict` endpoints
-- Pydantic validation for client rules (`shelf_hours ≤ 30`, `orders_previous_day ≥ 5`)
-- Docker image `mp058-api:1.0` with `python:3.12-slim`
-- GitHub Actions CI running pytest on every push
-- Kubernetes manifests: Deployment `mp058-api` (4 replicas), Service `mp058-svc`
+### Stage 3: FastAPI, Docker, CI, Kubernetes (COMPLETED)
+- FastAPI service with `/health` (returns `{"status": "ok"}`) and `/predict` endpoints
+- Pydantic validation for client rules (`shelf_hours ≤ 30`, `orders_previous_day ≥ 5`, valid categories)
+- Docker image `mp058-api:1.0` with `python:3.12-slim`, proper layer caching
+- GitHub Actions CI (`.github/workflows/ci.yml`) running pytest on every push - **green**
+- Kubernetes manifests: Deployment `mp058-api` (4 replicas), Service `mp058-svc` (port 80→8000), readiness/liveness probes on `/health`
+- JSON structured logging to stdout (one JSON line per prediction)
 
-### Stage 4: Drift, Retraining, Holdout Predictions (PENDING)
-- Population Stability Index (PSI) for all numeric features
-- Group-wise MAE on `later.csv`
-- Retrain v2 on train + first 70% of later.csv
-- Promotion rule: v2 MAE ≤ 0.85 × v1 MAE on last 30%
-- Final holdout predictions to `predictions/holdout_predictions.csv`
+### Stage 4: Drift, Retraining, Holdout Predictions (COMPLETED)
+- Population Stability Index (PSI) for all 6 numeric features (train vs later, 10 bins)
+- Most drifted feature: `shelf_hours` (PSI=10.775)
+- Group-wise MAE on `later.csv`: College Gate=37.28, Mall Road=14.87, Station Road=9.49
+- Worst-served group: `College Gate`
+- Retrained v2 on cleaned train + first 70% of later.csv (sorted by date)
+- Promotion rule: v2 MAE ≤ 0.85 × v1 MAE on last 30% → **Decision: KEEP v1** (v1 MAE=48.43, v2 MAE=48.43, threshold=41.16)
+- Final holdout predictions saved to `predictions/holdout_predictions.csv` (250 rows, `record_id,prediction`)
+- All findings documented in `findings.yaml`
 
 ## Reproduction Instructions
 
