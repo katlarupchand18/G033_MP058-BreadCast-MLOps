@@ -1,12 +1,12 @@
 {
-  "best_run_id": "fc991b9b80684faa852ac2769c88779e",
+  "best_run_id": "a36acfc6a9e34cf09d31d5be75fec356",
   "best_model_name": "HistGradientBoostingRegressor",
   "registered_model_name": "bakery_sales_model",
-  "champion_version": 1,
+  "champion_version": 3,
   "data_sha256": "d02dae0740aa624fe95ee4e4b751b19734d8869559a956d0b22069ebab304977",
   "all_results": [
     {
-      "run_id": "57c538c19b2546f1a592fbeefc667766",
+      "run_id": "9d38313ab4c1411296a67a354655186a",
       "model_name": "DummyRegressor",
       "metrics": {
         "cv_mae_mean": 81.38286867678026,
@@ -16,17 +16,17 @@
       }
     },
     {
-      "run_id": "6c3a52b4c3b144c1ba64f0ff338e9818",
+      "run_id": "cba72c6b15384476b4bf65af5f807e18",
       "model_name": "RandomForestRegressor",
       "metrics": {
-        "cv_mae_mean": 30.003603879990784,
-        "cv_mae_std": 2.956466981888903,
-        "train_mae": 12.269361167665664,
+        "cv_mae_mean": 30.003603879990788,
+        "cv_mae_std": 2.956466981888899,
+        "train_mae": 12.269361167665666,
         "model_name": "RandomForestRegressor"
       }
     },
     {
-      "run_id": "fc991b9b80684faa852ac2769c88779e",
+      "run_id": "a36acfc6a9e34cf09d31d5be75fec356",
       "model_name": "HistGradientBoostingRegressor",
       "metrics": {
         "cv_mae_mean": 23.13025588033279,
