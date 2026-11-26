@@ -87,7 +87,11 @@ The MLflow Model Registry contains one registered model entity:
   $$\text{CV MAE} = 23.1303 \pm 2.6192 \text{ loaves}$$
   compared to RandomForestRegressor ($30.0036 \text{ loaves}$) and DummyRegressor ($81.3829 \text{ loaves}$).
 - **Model Versioning Workflow:**
-  In this project, MLflow model versions increment sequentially with each registered run. Version 1 and Version 3 represent the baseline model (v1) trained exclusively on cleaned `train.csv`. Versions 2, 4, and 5 represent retrained candidate models (v2) incorporating post-drift data. In the latest database state, Version 3 retains the `@champion` alias in the registry.
+  In this project, MLflow model versions increment sequentially with each registered run. Version 1 and Version 3 represent the baseline model (v1, `HistGradientBoostingRegressor` with `max_depth=10`, `max_iter=200`, `learning_rate=0.1`, `min_samples_leaf=20`) trained exclusively on cleaned `train.csv`. Versions 2, 4, and 5 represent retrained candidate models (v2, `HistGradientBoostingRegressor` with `max_depth=6`, `max_iter=200`, `learning_rate=0.1`) incorporating post-drift data.
+- **Registry vs. Deployed Artifact Consistency Audit:**
+  - **MLflow `@champion` (Version 3):** Points to run `a36acfc6a9e34cf09d31d5be75fec356` (`max_depth=10`). Note that `mlruns/` and `mlartifacts/` are gitignored per `STUDENT_HANDBOOK.md` (and `mlflow.db` records artifact paths from the original author's macOS host), so the Version 3 binary artifact is not stored in Git.
+  - **Saved Artifact (`models/model.joblib`):** Inspecting `models/model.joblib` confirms a `Pipeline(preprocessor, HistGradientBoostingRegressor(max_depth=6, max_iter=200, random_state=42))` — which is the **retrained v2** model from `retrain.py`, **not** Version 3.
+  - **FastAPI Model Loading (`app/main.py`):** `load_model()` loads `Path("models/model.joblib")` directly from disk rather than fetching `@champion` from MLflow Registry. Consequently, both the FastAPI service and `predictions/holdout_predictions.csv` use **retrained v2**, which is **inconsistent** with the MLflow registry `@champion` alias pointing to Version 3.
 
 ---
 
@@ -231,11 +235,21 @@ The `Dockerfile` and `.dockerignore` were reviewed against project specification
 
 ## 14. Docker Runtime Validation
 
-- **Testing Environment:** Windows local host environment.
-- **Execution Check:** Probed host for Docker CLI (`docker`) and running Docker Desktop daemons.
-- **Result:** Neither `docker` CLI nor the Docker background service is installed or active on this physical Windows development machine.
-- **Status:** **STATIC AUDIT PASSED; RUNTIME CONTAINER TESTING NOT PERFORMED.**
-  Per ethical engineering standards and prompt guidelines, no container build (`docker build -t mp058-api:1.0 .`) or container run is falsely claimed.
+- **Docker Environment:** Docker Desktop (`Docker version 29.9.3, build 5457199`, Linux `x86_64` engine) running on Windows.
+- **Image Build:** Executed `docker build -t mp058-api:1.0 .` (using `python:3.12-slim` base image). Build completed with exit code `0`.
+  - `docker images mp058-api:1.0` confirmed image ID `3d2565e17c5b` (Disk usage: `1.58GB`, Content size: `371MB`).
+- **Container Execution:** Started container via `docker run -d --name breadcast-validation -p 8000:8000 mp058-api:1.0`.
+  - `docker ps` confirmed container `cb8ebfb6532b` running and forwarding `0.0.0.0:8000->8000/tcp`.
+  - Application became ready after `12s` (loading `models/model.joblib` and starting `uvicorn` on `0.0.0.0:8000`).
+- **Endpoint & Schema Validation:**
+  - `GET /health` (`Invoke-RestMethod http://localhost:8000/health`) $\rightarrow$ HTTP `200 OK`, response: `{"status":"ok"}`.
+  - `GET /docs` (`Invoke-WebRequest http://localhost:8000/docs`) $\rightarrow$ HTTP `200 OK`, Swagger UI rendered (`Contains Swagger: True`).
+  - `POST /predict` (valid payload: `price_rs=45.0, temp_c=28.5, footfall_index=60, competitor_shops=3, shelf_hours=10.0, orders_previous_day=250, day_type="weekday", outlet="Station Road"`) $\rightarrow$ HTTP `200 OK`, response: `{"prediction":339.75905338251476}`.
+  - `POST /predict` (invalid `shelf_hours=35.0 > 30`) $\rightarrow$ HTTP `422 Unprocessable Entity`.
+  - `POST /predict` (invalid `orders_previous_day=3 < 5`) $\rightarrow$ HTTP `422 Unprocessable Entity`.
+- **Container Logs (`docker logs breadcast-validation`):** Confirmed structured JSON log lines to stdout for model loading (`"Model loaded successfully"`, `"model_path": "models/model.joblib"`) and predictions (`"Prediction made"`).
+- **Cleanup:** Validation container stopped and removed cleanly (`docker stop breadcast-validation` and `docker rm breadcast-validation`).
+- **Status:** **BUILD AND RUNTIME VALIDATION PASSED.**
 
 ---
 
@@ -281,8 +295,11 @@ The Kubernetes configuration files in `k8s/` were reviewed against project speci
    - **Root Cause:** `retrain.py` loads `v1_model` from `models/model.joblib`. However, upon promoting v2, it writes the new model to `models/model.joblib`. In any subsequent execution, `v1_model` loads the retrained v2 model rather than the true baseline v1, resulting in a zero-difference comparison ($48.4270 \le 0.85 \times 48.4270 \rightarrow \text{False}$).
 3. **Findings Discrepancy Between Root and Reports Directory:**
    - `reports/findings.yaml` records the genuine Stage 4 evaluation ($\text{v1 MAE} = 141.5385, \text{v2 MAE} = 48.4270, \text{decision} = \text{"promote"}$), whereas root `findings.yaml` records the artifact of the re-run ($\text{decision} = \text{"keep"}$, champion version 3).
-4. **Local Runtime Tooling Absence:**
-   - Neither Docker daemon nor Kubernetes CLI is installed on the host environment, precluding runtime container validation.
+4. **Registry vs. Deployed Model Mismatch:**
+   - `mlflow.db` sets `@champion` to Version 3 (baseline v1, `max_depth=10`), whereas `models/model.joblib` (loaded by `app/main.py` and used for `holdout_predictions.csv`) contains retrained v2 (`max_depth=6`).
+5. **Local Python 3.12 & Kubernetes Tooling Absence:**
+   - Local Windows Python installations are `3.14`, `3.13`, and `3.11` (Python 3.12 is not installed locally, though `python:3.12-slim` was verified inside the Docker container).
+   - Kubernetes CLI (`kubectl`) and a live cluster are not available on the host environment, precluding runtime Kubernetes deployment testing.
 
 ---
 
@@ -292,10 +309,9 @@ The Kubernetes configuration files in `k8s/` were reviewed against project speci
    - Imported `from pathlib import Path`.
    - Added `@pytest.mark.skipif(not Path("data/raw/train.csv").exists(), reason="...")` decorator to `test_run_all_detections`.
    - Verified that the full test suite now runs with **31 passed, 1 skipped** in 29.35 seconds without errors.
-2. **Validated FastAPI Service with TestClient:**
-   - Verified GET `/health` returns status code 200 and `{"status": "ok"}`.
-   - Verified POST `/predict` accepts valid payloads and produces accurate numeric predictions.
-   - Verified Pydantic validation rejects `shelf_hours > 30` (Status 422) and `orders_previous_day < 5` (Status 422).
+2. **Validated FastAPI & Docker Container Runtime:**
+   - Built `mp058-api:1.0` with `python:3.12-slim` and ran container `breadcast-validation` on port `8000`.
+   - Verified `GET /health` (`{"status":"ok"}`), `GET /docs` (HTTP 200 Swagger UI), `POST /predict` valid prediction (`339.75905338251476`), and HTTP `422` rejections for `shelf_hours > 30` and `orders_previous_day < 5` both via `TestClient` and live container HTTP requests.
 3. **Repository Environment Alignment:**
    - Validated Git identity explicitly configured as `Tanishq Singh` (`tanishqsingh6206@gmail.com`).
    - Isolated validation work strictly on branch `tanishq/monitoring-validation`.
@@ -305,8 +321,9 @@ The Kubernetes configuration files in `k8s/` were reviewed against project speci
 ## 19. Limitations
 
 1. **DVC Remote Access:** Raw CSV datasets (`data/raw/train.csv` and `data/raw/later.csv`) are tracked via DVC pointers; only the cleaned versions (`data/cleaned/`) are checked into Git.
-2. **Docker Daemon:** Docker Desktop / daemon is not present on the host OS; containerization was validated via static analysis.
-3. **Kubernetes Cluster:** A live Kubernetes cluster (Minikube / Kind) was not available; manifests were validated via static declarative schema analysis.
+2. **MLflow Artifact Store:** `mlruns/` and `mlartifacts/` are gitignored; `mlflow.db` contains run metadata and parameters, while serialized model binaries for Version 3 are not stored in Git.
+3. **Host Python 3.12:** Python 3.12 is not installed locally on Windows (`3.14.7`, `3.13`, and `3.11` are available; `pytest` ran on Python 3.14.7), though Python 3.12 runtime was verified inside the `python:3.12-slim` Docker container.
+4. **Kubernetes Cluster:** A live Kubernetes cluster (`kubectl` / Minikube / Kind) was not available; manifests were validated via static declarative schema analysis.
 
 ---
 
@@ -335,7 +352,7 @@ As MLOps Validation Engineer, my individual contributions to Group G033 include:
 | **Holdout Predictions** | Relational Alignment & 0.0 Diff Reproduction | **VERIFIED & WORKING** |
 | **FastAPI Prediction Service** | TestClient Evaluation of Endpoints & Pydantic Rules | **VERIFIED & WORKING** |
 | **Automated Test Suite** | Pytest Execution (31 passed, 1 skipped) | **VERIFIED & GREEN** |
-| **Docker Configuration** | Static Dockerfile & .dockerignore Inspection | **VERIFIED STATICALLY** (Runtime unexecuted: Docker daemon absent) |
+| **Docker Configuration & Runtime** | `docker build -t mp058-api:1.0 .`, `docker run`, `/health`, `/docs`, `/predict`, `docker logs` | **VERIFIED & RUNNING** (Python 3.12 container) |
 | **Kubernetes Manifests** | Static Deployment & Service Schema Inspection | **VERIFIED STATICALLY** (Runtime unexecuted: Cluster absent) |
 
 Every verified component is backed by empirical logs and actual repository execution. All existing group artifacts have been preserved intact without destructive overwriting.
