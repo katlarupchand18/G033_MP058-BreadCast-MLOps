@@ -3,6 +3,7 @@
 import pandas as pd
 import numpy as np
 import pytest
+from pathlib import Path
 from src.bakery_mlops.data_quality import (
     detect_leaking_column,
     detect_unit_mixup,
@@ -222,6 +223,10 @@ class TestDataQualityDetection:
         result = detect_spelling_variants(train, later)
         assert result["present"] == False
 
+    @pytest.mark.skipif(
+        not Path("data/raw/train.csv").exists(),
+        reason="data/raw/train.csv not present (DVC tracked; see STUDENT_HANDBOOK section 5)"
+    )
     def test_run_all_detections(self):
         """Test that all detections run without error on real data."""
         results = run_all_detections()
