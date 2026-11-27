@@ -150,9 +150,9 @@ class TestPredictEndpoint:
             "extra_field": "not_allowed"
         }
         response = client.post("/predict", json=payload)
-        # Should reject extra fields (if configured with extra='forbid')
-        # For now, just check it doesn't crash - behavior depends on Pydantic config
-        assert response.status_code in [200, 422]
+        
+        assert response.status_code == 422
+        assert "detail" in response.json()
 
     def test_predict_boundary_shelf_hours(self):
         """Test boundary values for shelf_hours (<= 30 allowed)."""
