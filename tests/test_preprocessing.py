@@ -136,6 +136,49 @@ class TestPreprocessing:
         assert X_transformed.shape[0] == len(X)
         assert X_transformed.shape[1] > 0  # Some features after encoding
 
+    def test_clean_train_data_preserves_original(self):
+        """Ensure cleaning does not modify the original data."""
+        original = self.raw_train.copy(deep=True)
+
+        clean_train_data(self.raw_train)
+
+        pd.testing.assert_frame_equal(self.raw_train, original)
+
+    def test_clean_data_preserves_correct_prices(self):
+        """Ensure correct prices are not converted again."""
+        data = pd.DataFrame({
+            "outlet": ["College Gate", "Mall Road"],
+            "price_rs": [50.0, 60.0]
+        })
+
+        later = clean_later_data(data)
+        holdout = clean_holdout_data(data)
+
+        assert later["price_rs"].tolist() == [50.0, 60.0]
+        assert holdout["price_rs"].tolist() == [50.0, 60.0]
+
+    def test_pipeline_handles_unseen_category(self):
+        """Ensure the pipeline handles unknown outlet categories."""
+        cleaned = clean_train_data(self.raw_train)
+        params = load_params()
+
+        feature_cols = params["preprocessing"]["feature_columns"]
+        X = cleaned[feature_cols]
+
+        preprocessor = get_preprocessing_pipeline(params)
+        X_train = preprocessor.fit_transform(X)
+
+        new_data = X.iloc[[0]].copy()
+        new_data["outlet"] = "New Outlet"
+
+        transformed = preprocessor.transform(new_data)
+
+        assert transformed.shape[0] == 1
+        assert transformed.shape[1] == X_train.shape[1]
+        assert np.isfinite(transformed).all()
+
+
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
